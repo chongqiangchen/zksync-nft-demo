@@ -1,6 +1,5 @@
 "use client";
 
-import ConnectButton from "@/components/connect-button";
 import {useState} from "react";
 import StepConnectWallet from "@/app/(main)/step-connect-wallet";
 import StepMint from "@/app/(main)/step-mint";

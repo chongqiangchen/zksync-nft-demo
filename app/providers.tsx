@@ -1,30 +1,17 @@
 'use client'
 
-import React, {ReactNode} from 'react'
-import {config, projectId} from '@/config'
-import {createWeb3Modal} from '@web3modal/wagmi/react'
-import {State, WagmiProvider} from 'wagmi'
-import {zkSync} from "wagmi/chains";
+import { Web3ModalProvider } from '@/context/web3-modal';
+import React, { ReactNode } from 'react'
+import { QueryClient, QueryClientProvider } from 'react-query';
 
-// Create modal
-createWeb3Modal({
-    wagmiConfig: config,
-    projectId,
-    defaultChain: zkSync,
-})
+const queryClient = new QueryClient()
 
-export default function Providers(
-    {
-        children,
-        initialState
-    }: {
-        children: ReactNode
-        initialState?: State
-    }
-) {
+export default function Providers({ children }: { children: ReactNode }) {
     return (
-        <WagmiProvider config={config} initialState={initialState}>
-            {children}
-        </WagmiProvider>
+        <QueryClientProvider client={queryClient}>
+            <Web3ModalProvider>
+                {children}
+            </Web3ModalProvider>
+        </QueryClientProvider>
     )
 }
