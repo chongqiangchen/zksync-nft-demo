@@ -11,12 +11,16 @@ enum EStep {
 }
 
 export default function Home() {
-    const [step, setStep] = useState(EStep.MINT);
+    const [step, setStep] = useState(EStep.CONNECT);
+
+    const next = () => {
+        setStep(EStep.MINT);
+    }
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-24">
             {step === EStep.CONNECT && (
-                <StepConnectWallet/>
+                <StepConnectWallet next={next} />
             )}
             {step === EStep.MINT && (
                 <StepMint/>
