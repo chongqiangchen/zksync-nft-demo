@@ -3,7 +3,7 @@
 import {Icons} from "@/components/icons";
 import {useEffect} from "react";
 import {truncate} from "@/lib/utils";
-import { useSwitchNetwork, useWeb3Modal, useWeb3ModalAccount } from "@web3modal/ethers/react";
+import { useSwitchNetwork, useWeb3Modal, useWeb3ModalAccount } from "@web3modal/ethers5/react";
 
 const StepConnectWallet = ({next}: {next: () => void}) => {
     const { open } = useWeb3Modal();

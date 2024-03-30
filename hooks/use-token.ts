@@ -1,46 +1,47 @@
 import { PAYMASTER_ADDRESS, TOKEN_ABI, TOKEN_ADDRESS } from "@/constants/contract";
-import { useWeb3ModalAccount, useWeb3ModalProvider } from "@web3modal/ethers/react";
-import { Contract, BrowserProvider, Wallet, Provider } from "zksync-ethers"
+import { useWeb3ModalAccount, useWeb3ModalProvider } from "@web3modal/ethers5/react";
+import { Contract, Web3Provider } from "zksync-ethers"
 import { ethers } from "ethers";
 import { useMutation, useQuery } from "react-query";
 import { toast } from "sonner";
 import usePaymaster from "./use-paymaster";
+import { useMemo } from "react";
 
 
 const useToken = () => {
     const { isConnected, address } = useWeb3ModalAccount()
     const { walletProvider } = useWeb3ModalProvider()
 
-    const { paymasterBalance, customData } = usePaymaster();
+    const { customData } = usePaymaster();
 
-    const getContract = async () => {
-        const ethersProvider = new BrowserProvider((window as any)?.ethereum)
-        const signer = await ethersProvider.getSigner();
-        const erc20Contract = new Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
-        return erc20Contract;
-    }
+    const contract = useMemo(() => {
+        if (!isConnected) return null;
+
+        const ethersProvider = new Web3Provider(walletProvider!)
+        const signer = ethersProvider.getSigner();
+        return new Contract(TOKEN_ADDRESS, TOKEN_ABI, signer);
+    }, [isConnected, address])
 
     const getTokenMintEstimate = async () => {
-        const ethersProvider = new BrowserProvider(walletProvider!)
-        const erc20Contract = await getContract();
-
-        const gasEstimate = await erc20Contract.mint.estimateGas(address, ethers.parseEther("1000"));
+        const ethersProvider = new Web3Provider(walletProvider!)
+        const erc20Contract = contract!;
+        const gasEstimate = await erc20Contract.estimateGas.mint(address, ethers.utils.parseEther("1000"));
         const gasPrice = await ethersProvider.getGasPrice();
-        const cost = gasPrice * gasEstimate;
+        const cost = gasPrice.mul(gasEstimate);
 
         return {
-            gas: ethers.formatEther(gasEstimate).toString(),
-            gasPrice: ethers.formatEther(gasPrice).toString(),
-            cost: ethers.formatEther(cost).toString()
+            gas: ethers.utils.formatEther(gasEstimate).toString(),
+            gasPrice: ethers.utils.formatEther(gasPrice).toString(),
+            cost: ethers.utils.formatEther(cost).toString()
         }
     }
 
     const { data: tokenBalance, refetch: refetchToken } = useQuery(
         ["token", address],
         async () => {
-            const erc20Contract = await getContract();
+            const erc20Contract = contract!;
             const balance = await erc20Contract.balanceOf(address);
-            return ethers.formatEther(balance).toString();
+            return ethers.utils.formatEther(balance).toString();
         },
         {
             enabled: isConnected,
@@ -49,7 +50,7 @@ const useToken = () => {
     )
 
     const {data: allowance, refetch: refetchAllowance} = useQuery(["tokenAllowance", address], async () => {
-        const erc20Contract = await getContract();
+        const erc20Contract = contract!;
         const allowance = await erc20Contract.allowance(address, customData.paymasterParams.paymaster);
         return allowance;
     }, {
@@ -60,9 +61,9 @@ const useToken = () => {
     const { data: mintTx, isLoading: isMintLoading, mutateAsync: mint } = useMutation(
         ["mint", address],
         async () => {
-            const erc20Contract = await getContract();
-            const tx = await erc20Contract.mint(address, ethers.parseEther("1000"), {
-                customData: ethers.parseEther(tokenBalance!) > ethers.parseEther("1") ? customData : undefined
+            const erc20Contract = contract!;
+            const tx = await erc20Contract.mint(address, ethers.utils.parseEther("1000"), {
+                customData: ethers.utils.parseEther(tokenBalance!) > ethers.utils.parseEther("1") ? customData : undefined
             });
             await tx.wait();
             return tx;
@@ -74,7 +75,7 @@ const useToken = () => {
             },
             onError: (error: any) => {
                 console.log(error);
-                toast.error(error.message);
+                toast.error(error.data.message);
             }
         }
     )
@@ -84,10 +85,10 @@ const useToken = () => {
         isLoading: isApprovePaymasterLoading, 
         mutateAsync: approvePaymaster
     } = useMutation("approve", async () => {
-        const erc20Contract = await getContract();
+        const erc20Contract = contract!;
         const tx = await erc20Contract.approve(
             PAYMASTER_ADDRESS,
-            ethers.MaxUint256
+            ethers.constants.MaxUint256
         );
         await tx.wait();
         return tx;
@@ -105,10 +106,11 @@ const useToken = () => {
         mintTx,
         isMintLoading,
         getTokenMintEstimate,
-        isAllowancePaymaster: allowance! > ethers.parseEther("1"),
+        isAllowancePaymaster: allowance?.gte(ethers.utils.parseEther("1")),
         approvePaymaster,
         isApprovePaymasterLoading,
-        approvePaymasterTx
+        approvePaymasterTx,
+        canNonGas: tokenBalance ? ethers.utils.parseEther(tokenBalance!) > ethers.utils.parseEther("1") : false
     }
 }
 

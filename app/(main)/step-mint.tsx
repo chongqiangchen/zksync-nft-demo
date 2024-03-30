@@ -1,5 +1,6 @@
 "use client";
 
+import MintNFTModal from "@/components/mint-nft-modal";
 import MintTokenModal from "@/components/mint-token-modal";
 import usePaymaster from "@/hooks/use-paymaster";
 import useToken from "@/hooks/use-token";
@@ -24,7 +25,7 @@ const StepMint = () => {
                 </div>
                 <div className="space-x-1">
                     <span className="text-gray-400">NFT铸造：</span>
-                    <a className="text-blue-600 cursor-pointer">Mint</a>
+                    <MintNFTModal />
                 </div>
             </div>
         </div>
